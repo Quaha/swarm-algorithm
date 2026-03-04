@@ -28,5 +28,5 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_library)
 
 # gtest
 enable_testing()
-add_subdirectory(external/gtest EXCLUDE_FROM_ALL)
+add_subdirectory(external/googletest EXCLUDE_FROM_ALL)
 add_subdirectory(tests)
