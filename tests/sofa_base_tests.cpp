@@ -1,13 +1,14 @@
 #include <gtest/gtest.h>
 #include <cmath>
 #include "sofa_base.hpp"
+#include "hvector.hpp"
 
 using namespace swarm_algorithm;
 
 TEST(SofaBaseTests, SofaBase) {
 
     // Rastrigin inverted
-    const auto func = [](const std::vector<double> &v) -> double {
+    const auto func = [](const hvector<2> &v) -> double {
         double x = v[0];
         double y = v[1];
         constexpr double DPI = 6.283185307179586476925286766559;
@@ -19,8 +20,8 @@ TEST(SofaBaseTests, SofaBase) {
         std::make_pair(-3.0, 3.0)
         });
 
-    sofa_base algo(func, rect);
-
+    sofa_base<2> algo(func, rect);
+    algo.reserve_buffers(12000);
     auto res = algo.result(10000);
     
     EXPECT_LE(abs(res.first[0] - 0.0), 0.1);
