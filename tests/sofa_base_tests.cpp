@@ -12,7 +12,10 @@ TEST(SofaBaseTests, SofaBase) {
         double x = v[0];
         double y = v[1];
         constexpr double DPI = 6.283185307179586476925286766559;
-        return std::max(0.0, - (x * x - 10 * cos(DPI * x)) - (y * y - 10 * cos(DPI * y)));
+
+        double rastrigin = -20.0 + (10.0 * cos(DPI * x) - x * x) + (10.0 * cos(DPI * y) - y * y);
+
+        return 1.0 / std::exp(-0.25 * rastrigin);
         };
 
     hrect rect({
@@ -26,5 +29,5 @@ TEST(SofaBaseTests, SofaBase) {
     
     EXPECT_LE(abs(res.first[0] - 0.0), 0.1);
     EXPECT_LE(abs(res.first[1] - 0.0), 0.1);
-    EXPECT_LE(abs(res.second - 20.0), 0.1);
+    EXPECT_LE(abs(res.second - 1.0), 0.1);
 }
