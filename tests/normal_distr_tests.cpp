@@ -6,6 +6,7 @@
 
 #include "hrect.hpp"
 #include "truncated_normal.hpp"
+#include "xoshiro.hpp"
 
 using namespace swarm_algorithm;
 
@@ -15,7 +16,7 @@ protected:
         gen_.seed(42);
     }
 
-    std::mt19937 gen_;
+    Xoshiro::Xoshiro256PP gen_;
 
 protected:
     double normal_pdf(double x, double mean, double stddev) {

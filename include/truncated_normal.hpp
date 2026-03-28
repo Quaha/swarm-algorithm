@@ -1,14 +1,16 @@
 #pragma once
 
-#include <vector>
-#include <random>
-#include <cmath>
 #include "hrect.hpp"
+#include "xoshiro.hpp"
+#include <cmath>
+#include <random>
+#include <vector>
+
 
 namespace swarm_algorithm {
-    class truncated_normal {
+    template <typename TGen> class truncated_normal {
     public:
-        truncated_normal(const hrect& search_area, std::mt19937& gen, size_t dim)
+        truncated_normal(const hrect& search_area, TGen& gen, size_t dim)
             : search_area_(search_area), gen_(gen), dim_(dim) {
 
             build_standard_table();
@@ -44,7 +46,8 @@ namespace swarm_algorithm {
         }
 
     private:
-        void build_standard_table(double z_min = -8.0, double z_max = 8.0, size_t n = 10000) {
+        void build_standard_table(double z_min = -8.0, double z_max = 8.0,
+            size_t n = 10000) {
             z_table_.resize(n);
             cdf_table_.resize(n);
 
@@ -65,15 +68,18 @@ namespace swarm_algorithm {
             }
 
             double inv_total = 1.0 / total;
-            for (auto& c : cdf_table_) c *= inv_total;
+            for (auto& c : cdf_table_)
+                c *= inv_total;
 
             last_z_idx_ = 0;
             last_cdf_idx_ = 0;
         }
 
         double get_cdf_fast(double z) {
-            if (z <= z_table_[0]) return 0.0;
-            if (z >= z_table_.back()) return 1.0;
+            if (z <= z_table_[0])
+                return 0.0;
+            if (z >= z_table_.back())
+                return 1.0;
 
             size_t left = 0, right = z_table_.size() - 1;
 
@@ -97,15 +103,18 @@ namespace swarm_algorithm {
             size_t idx = left;
             last_z_idx_ = idx;
 
-            if (idx == 0) return 0.0;
+            if (idx == 0)
+                return 0.0;
 
             double t = (z - z_table_[idx - 1]) / (z_table_[idx] - z_table_[idx - 1]);
             return cdf_table_[idx - 1] + t * (cdf_table_[idx] - cdf_table_[idx - 1]);
         }
 
         double get_z_from_cdf_fast(double cdf) {
-            if (cdf <= cdf_table_[0]) return z_table_[0];
-            if (cdf >= cdf_table_.back()) return z_table_.back();
+            if (cdf <= cdf_table_[0])
+                return z_table_[0];
+            if (cdf >= cdf_table_.back())
+                return z_table_.back();
 
             size_t left = 0, right = cdf_table_.size() - 1;
 
@@ -129,9 +138,11 @@ namespace swarm_algorithm {
             size_t idx = left;
             last_cdf_idx_ = idx;
 
-            if (idx == 0) return z_table_[0];
+            if (idx == 0)
+                return z_table_[0];
 
-            double t = (cdf - cdf_table_[idx - 1]) / (cdf_table_[idx] - cdf_table_[idx - 1]);
+            double t =
+                (cdf - cdf_table_[idx - 1]) / (cdf_table_[idx] - cdf_table_[idx - 1]);
             return z_table_[idx - 1] + t * (z_table_[idx] - z_table_[idx - 1]);
         }
 
@@ -141,7 +152,7 @@ namespace swarm_algorithm {
         }
 
         const hrect& search_area_;
-        std::mt19937& gen_;
+        TGen& gen_;
         size_t dim_;
         std::vector<double> z_table_;
         std::vector<double> cdf_table_;

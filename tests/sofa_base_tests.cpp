@@ -26,8 +26,6 @@ TEST(SofaBaseTests, SofaBase) {
     sofa_base<2> algo(func, rect);
     algo.reserve_buffers(12000);
     auto res = algo.result(10000);
-
-    std::cout << algo.bad_points() << std::endl;
     
     EXPECT_LE(abs(res.first[0] - 0.0), 0.1);
     EXPECT_LE(abs(res.first[1] - 0.0), 0.1);
