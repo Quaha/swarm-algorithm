@@ -6,6 +6,7 @@
 
 #include "hrect.hpp"
 #include "hvector.hpp"
+#include "truncated_normal.hpp"
 
 namespace swarm_algorithm {
 
@@ -15,7 +16,7 @@ namespace swarm_algorithm {
         using function_ptr_type = double (*)(const hvector<DIM>&);
 
         sofa_base(function_ptr_type func, const hrect& search_area)
-            : func_(func), search_area_(search_area) {
+            : func_(func), search_area_(search_area), normal_distr_(search_area, gen_, DIM), bad_points_(0) {
             if (func_ == nullptr) {
                 throw std::invalid_argument("func was nullptr.");
             }
@@ -27,6 +28,7 @@ namespace swarm_algorithm {
 
         function_ptr_type func() const { return func_; }
         const hrect& search_area() const { return search_area_; }
+        size_t bad_points() const { return bad_points_; }
 
         std::pair<hvector<DIM>, double> result(size_t iter_count,
             bool from_start = true) {
@@ -55,19 +57,23 @@ namespace swarm_algorithm {
     private:
         function_ptr_type func_;
         hrect search_area_;
-        std::mt19937_64 gen_;
+        std::mt19937 gen_;
         size_t start_population_size_ = 100;
         double gamma_ = 0.001;
 
         double ans_ = 0.0;
         hvector<DIM> ans_point_;
 
+        truncated_normal normal_distr_;
         std::vector<hvector<DIM>> points_;
         std::vector<double> values_;
+
+        size_t bad_points_;
 
         void initialize() {
             gen_.seed(123);
             ans_ = 0.0;
+            bad_points_ = 0;
 
             points_.clear();
             for (size_t i = 0; i < start_population_size_; i++) {
@@ -122,25 +128,24 @@ namespace swarm_algorithm {
                 prob_[i] /= sum;
             }
 
-            std::discrete_distribution<size_t> pivot_distr(prob_.begin(), prob_.begin() + k - 1);
-            size_t pivot_index = pivot_distr(gen_);
+            std::uniform_real_distribution pivot_distr(0.0, 1.0);
+            double pivot_val = pivot_distr(gen_);
+            sum = 0.0;
+            size_t pivot_index = 0;
+            for (size_t i = 0; i < k - 1; i++) {
+                sum += prob_[i];
+                if (sum >= pivot_val) {
+                    pivot_index = i;
+                    break;
+                }
+            }
 
             double stddev = sqrt(search_area_.max_dim() / log(k));
 
             hvector<DIM> new_point;
             for (size_t i = 0; i < DIM; i++) {
-                std::normal_distribution distr(points_[pivot_index][i], stddev);
-                const auto [l, r] = search_area_.get(i);
 
-                bool accept = false;
-                double x = 0.0;
-                while (!accept) {
-                    double candidate = distr(gen_);
-                    if (l <= candidate && candidate <= r) {
-                        x = candidate;
-                        accept = true;
-                    }
-                }
+                double x = normal_distr_.generate(points_[pivot_index][i], stddev, i);
 
                 new_point[i] = x;
             }
