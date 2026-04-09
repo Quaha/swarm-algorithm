@@ -11,6 +11,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS src/*.cpp)
 file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS include/*.h*)
 
+# CEC2017 Lib
+add_subdirectory(external/cec2017/code)
+
 add_library(${PROJECT_NAME}_library
     ${SRC_FILES} 
     ${HEADER_FILES}
@@ -23,7 +26,7 @@ target_include_directories(${PROJECT_NAME}_library
 )
 
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_library)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_library cec17_test_func)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_library)
 
 # gtest

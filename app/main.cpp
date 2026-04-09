@@ -2,6 +2,10 @@
 
 #include "module.hpp"
 
+extern "C" {
+#include "cec17.h"
+}
+
 int main() {
 
     int a, b;

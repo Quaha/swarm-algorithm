@@ -3,6 +3,10 @@
 #include "sofa_base.hpp"
 #include "hvector.hpp"
 
+extern "C" {
+#include "cec17.h"
+}
+
 using namespace swarm_algorithm;
 
 TEST(SofaBaseTests, SofaBase) {
