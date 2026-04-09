@@ -21,8 +21,8 @@ namespace swarm_algorithm {
     public:
         using function_ptr_type = double (*)(const hvector<DIM>&);
 
-        sofa_base(function_ptr_type func, const hrect& search_area)
-            : func_(func), search_area_(search_area),
+        sofa_base(function_ptr_type func, const hrect& search_area, uint64_t seed)
+            : seed_(seed), func_(func), search_area_(search_area),
             normal_distr_(search_area, gen_, DIM), bad_points_(0) {
             if (func_ == nullptr) {
                 throw std::invalid_argument("func was nullptr.");
@@ -56,6 +56,7 @@ namespace swarm_algorithm {
                 if (res > ans_) {
                     ans_ = values_.back();
                     ans_point_ = points_.back();
+                    best_upds_.push_back(values_.size() - 1);
                 }
             }
 
@@ -66,6 +67,16 @@ namespace swarm_algorithm {
             return { ans_point_, ans_ };
         }
 
+        std::vector<std::tuple<size_t, hvector<DIM>, double>> dump_bests() {
+            std::vector<std::tuple<size_t, hvector<DIM>, double>> res;
+
+            for (auto v : best_upds_) {
+                res.push_back({ v, points_[v], values_[v] });
+            }
+
+            return res;
+        }
+
         void reserve_buffers(size_t size) {
             f_psi_.resize(std::max(f_psi_.size(), size));
             rho_.resize(std::max(rho_.size(), size));
@@ -73,11 +84,13 @@ namespace swarm_algorithm {
         }
 
     private:
+        uint64_t seed_;
+            
         function_ptr_type func_;
         hrect search_area_;
         rand_precalc<Xoshiro::Xoshiro256PP> gen_;
         size_t start_population_size_ = 100;
-        double gamma_ = 0.001;
+        double gamma_ = 0.01;
 
         double ans_ = 0.0;
         hvector<DIM> ans_point_;
@@ -86,16 +99,21 @@ namespace swarm_algorithm {
         std::vector<hvector<DIM>> points_;
         std::vector<double> logs_;
         std::vector<double> values_;
+        std::vector<size_t> best_upds_;
 
         size_t bad_points_;
 
         void initialize() {
-            gen_.seed(123);
+            gen_.seed(seed_);
             gen_.set_batch_size(40000);
             ans_ = 0.0;
             bad_points_ = 0;
 
             points_.clear();
+            logs_.clear();
+            values_.clear();
+            best_upds_.clear();
+
             for (size_t i = 0; i < start_population_size_; i++) {
                 points_.emplace_back(gen_point_uniform());
                 values_.push_back(func_(points_.back()));
@@ -104,6 +122,7 @@ namespace swarm_algorithm {
                 if (values_.back() > ans_) {
                     ans_ = values_.back();
                     ans_point_ = points_.back();
+                    best_upds_.push_back(values_.size() - 1);
                 }
             }
         }
@@ -147,11 +166,10 @@ namespace swarm_algorithm {
             {
                 double sum = 0.0;
                 for (size_t i = 0; i < k - 1; i++) {
-                    if (rho_[i] < gamma_)
-                        continue;
+                    double psi = rho_[i] < gamma_ ? 0.0 : f_psi_[i];
 
-                    prob_[i] = f_psi_[i];
-                    sum += f_psi_[i];
+                    prob_[i] = psi;
+                    sum += psi;
                 }
 
                 double inv_sum = 1.0 / sum;
@@ -177,7 +195,7 @@ namespace swarm_algorithm {
 
             // gen new point
             {
-                double stddev = sqrt(search_area_.max_dim() / log(k));
+                double stddev = search_area_.max_dim() * sqrt(2.0 * search_area_.dimensions_cnt() / log(k));
 
                 hvector<DIM> new_point;
                 for (size_t i = 0; i < DIM; i++) {

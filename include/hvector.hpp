@@ -35,6 +35,7 @@ namespace swarm_algorithm {
         }
 
         size_t dims() const { return DIM; }
+        const fp_t* data() const { return &data_[0]; }
 
         fp_t operator[](size_t index) const { return data_[index]; }
 
