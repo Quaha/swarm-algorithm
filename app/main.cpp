@@ -16,6 +16,42 @@ using namespace swarm_algorithm;
 
 #define PI 3.1415926535897932384626433832795029
 
+void my_weierstrass_func(double* x, double* f, int nx) /* Weierstrass's  */
+{
+    int i, j, k_max;
+    double sum, sum2, a, b;
+    a = 0.5;
+    b = 3.0;
+    k_max = 20;
+    f[0] = 0.0;
+
+    for (i = 0; i < nx; i++) {
+        sum = 0.0;
+        sum2 = 0.0;
+        for (j = 0; j <= k_max; j++) {
+            sum += pow(a, j) * cos(2.0 * PI * pow(b, j) * (x[i] + 0.5));
+            sum2 += pow(a, j) * cos(2.0 * PI * pow(b, j) * 0.5);
+        }
+        f[0] += sum;
+    }
+    f[0] -= nx * sum2;
+}
+
+
+void my_griewank_func(double* x, double* f, int nx) /* Griewank's  */
+{
+    int i;
+    double s, p;
+    s = 0.0;
+    p = 1.0;
+
+    for (i = 0; i < nx; i++) {
+        s += x[i] * x[i];
+        p *= cos(x[i] / sqrt(1.0 + i));
+    }
+    f[0] = 1.0 + s / 4000.0 - p;
+}
+
 int main() {
 
     constexpr int dims = 2;
@@ -26,7 +62,9 @@ int main() {
 
         const auto* x = v.data();
         
-        double val = cec17_error(cec17_fitness(const_cast<double*>(x)));
+        //double val = cec17_error(cec17_fitness(const_cast<double*>(x)));
+        double val = 0.0;
+        my_weierstrass_func(const_cast<double*>(x), &val, dims);
 
         return 1.0 / (1.0 + std::exp(coef * val));
         };
@@ -34,13 +72,13 @@ int main() {
     hrect rect(std::make_pair(-100.0, 100.0), dims);
 
     //array<int, 6> funcIds = { 5, 1, 16, 19, 28, 30 };
-    array<int, 3> funcIds = { 5, 1, 28 };
+    array<int, 4> funcIds = { 5, 10, 1, 28};
 
     for (auto funcid : funcIds) {
         cec17_init("SoFA", funcid, dims);
 
         sofa_base<dims> algo(func, rect, 234356);
-        auto sol = algo.result(20000, true);
+        auto sol = algo.result(19900, true);
 
         cout << "Best Random[F" << funcid << "]: " << sol.second << endl;
         //for (int i = 0; i < sol.first.dims(); i++) cout << sol.first[i] << ' ';
