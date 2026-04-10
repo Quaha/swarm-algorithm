@@ -2,6 +2,8 @@
 #include <vector>
 #include <random>
 #include <array>
+#include <filesystem>
+#include <string>
 
 #include "hvector.hpp"
 #include "hrect.hpp"
@@ -52,9 +54,13 @@ void my_griewank_func(double* x, double* f, int nx) /* Griewank's  */
     f[0] = 1.0 + s / 4000.0 - p;
 }
 
-int main() {
+constexpr int dims = 2;
+constexpr int steps = 20000 - 100;
+const string algo_name = "SOFA";
 
-    constexpr int dims = 2;
+int main() {
+    filesystem::create_directory("results_" + algo_name);
+
 
     const auto func = [](const hvector<dims>& v) -> double {
         
@@ -62,9 +68,9 @@ int main() {
 
         const auto* x = v.data();
         
-        //double val = cec17_error(cec17_fitness(const_cast<double*>(x)));
-        double val = 0.0;
-        my_weierstrass_func(const_cast<double*>(x), &val, dims);
+        double val = cec17_error(cec17_fitness(const_cast<double*>(x)));
+        /*double val = 0.0;
+        my_weierstrass_func(const_cast<double*>(x), &val, dims);*/
 
         return 1.0 / (1.0 + std::exp(coef * val));
         };
@@ -75,10 +81,10 @@ int main() {
     array<int, 4> funcIds = { 5, 10, 1, 28};
 
     for (auto funcid : funcIds) {
-        cec17_init("SoFA", funcid, dims);
+        cec17_init(algo_name.c_str(), funcid, dims);
 
         sofa_base<dims> algo(func, rect, 234356);
-        auto sol = algo.result(19900, true);
+        auto sol = algo.result(steps, true);
 
         cout << "Best Random[F" << funcid << "]: " << sol.second << endl;
         //for (int i = 0; i < sol.first.dims(); i++) cout << sol.first[i] << ' ';
