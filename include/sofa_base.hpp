@@ -23,7 +23,7 @@ namespace swarm_algorithm {
 
         sofa_base(function_ptr_type func, const hrect& search_area, uint64_t seed)
             : seed_(seed), func_(func), search_area_(search_area),
-            normal_distr_(search_area, gen_, DIM), bad_points_(0) {
+            normal_distr_(search_area, gen_, DIM), step_(0), bad_points_(0) {
             if (func_ == nullptr) {
                 throw std::invalid_argument("func was nullptr.");
             }
@@ -51,13 +51,15 @@ namespace swarm_algorithm {
             auto steps_begin = std::chrono::steady_clock::now();
 
             for (size_t iter = 0; iter < iter_count; iter++) {
-                double res = make_step();
+                double res = make_step(step_);
 
                 if (res > ans_) {
                     ans_ = values_.back();
                     ans_point_ = points_.back();
-                    best_upds_.push_back(values_.size() - 1);
+                    best_upds_.emplace_back(step_, ans_point_, ans_);
                 }
+
+                step_++;
             }
 
             auto steps_end = std::chrono::steady_clock::now();
@@ -67,14 +69,8 @@ namespace swarm_algorithm {
             return { ans_point_, ans_ };
         }
 
-        std::vector<std::tuple<size_t, hvector<DIM>, double>> dump_bests() {
-            std::vector<std::tuple<size_t, hvector<DIM>, double>> res;
-
-            for (auto v : best_upds_) {
-                res.push_back({ v, points_[v], values_[v] });
-            }
-
-            return res;
+        std::vector<std::tuple<size_t, hvector<DIM>, double>> dump_bests() const {
+            return best_upds_;
         }
 
         void reserve_buffers(size_t size) {
@@ -96,16 +92,18 @@ namespace swarm_algorithm {
         hvector<DIM> ans_point_;
 
         truncated_normal<decltype(gen_)> normal_distr_;
+        size_t step_;
         std::vector<hvector<DIM>> points_;
         std::vector<double> logs_;
         std::vector<double> values_;
-        std::vector<size_t> best_upds_;
+        std::vector<std::tuple<size_t, hvector<DIM>, double>> best_upds_;
 
         size_t bad_points_;
 
         void initialize() {
             gen_.seed(seed_);
             gen_.set_batch_size(40000);
+            step_ = 1;
             ans_ = 0.0;
             bad_points_ = 0;
 
@@ -122,8 +120,10 @@ namespace swarm_algorithm {
                 if (values_.back() > ans_) {
                     ans_ = values_.back();
                     ans_point_ = points_.back();
-                    best_upds_.push_back(values_.size() - 1);
+                    best_upds_.emplace_back(step_, ans_point_, ans_);
                 }
+
+                step_++;
             }
         }
 
@@ -131,60 +131,44 @@ namespace swarm_algorithm {
         std::vector<double> rho_;
         std::vector<double> prob_;
 
-        double make_step() {
-
+        double make_step(size_t k) {
             const auto psi_ = [](size_t k) -> double {
                 return std::sqrt((static_cast<double>(k) * 0.001 + 1.0));
                 };
 
-            const size_t k = points_.size() + 1;
-            reserve_buffers(k - 1);
+            const size_t np = points_.size();
+
+            reserve_buffers(np + 1);
 
             // calc f_psi
             {
                 double psi_k = psi_(k);
-                for (size_t i = 0; i < k - 1; i++) {
+                for (size_t i = 0; i < np; i++) {
                     f_psi_[i] = std::exp(logs_[i] * psi_k);
                 }
             }
 
-            // calc rho
+            // calc prob
             {
                 double sum = 0.0;
-                for (size_t i = 0; i < k - 1; i++) {
-                    rho_[i] = f_psi_[i];
+                for (size_t i = 0; i < np; i++) {
+                    prob_[i] = f_psi_[i];
                     sum += f_psi_[i];
                 }
 
                 double inv_sum = 1.0 / sum;
-                for (size_t i = 0; i < k - 1; i++) {
-                    rho_[i] *= inv_sum;
-                }
-            }
-
-            // pivot selection
-            {
-                double sum = 0.0;
-                for (size_t i = 0; i < k - 1; i++) {
-                    double psi = rho_[i] < gamma_ ? 0.0 : f_psi_[i];
-
-                    prob_[i] = psi;
-                    sum += psi;
-                }
-
-                double inv_sum = 1.0 / sum;
-                for (size_t i = 0; i < k - 1; i++) {
+                for (size_t i = 0; i < np; i++) {
                     prob_[i] *= inv_sum;
                 }
             }
 
-            // choose pivot
+            // pivot selection
             size_t pivot_index = 0;
             {
                 std::uniform_real_distribution pivot_distr(0.0, 1.0);
                 double pivot_val = pivot_distr(gen_);
                 double sum = 0.0;
-                for (size_t i = 0; i < k - 1; i++) {
+                for (size_t i = 0; i < np; i++) {
                     sum += prob_[i];
                     if (sum >= pivot_val) {
                         pivot_index = i;
@@ -194,22 +178,37 @@ namespace swarm_algorithm {
             }
 
             // gen new point
+            hvector<DIM> new_point;
             {
                 double stddev = search_area_.max_dim() * sqrt(2.0 * search_area_.dimensions_cnt() / log(k));
 
-                hvector<DIM> new_point;
                 for (size_t i = 0; i < DIM; i++) {
 
                     double x = normal_distr_.generate(points_[pivot_index][i], stddev, i);
 
                     new_point[i] = x;
-                }
-
-                points_.emplace_back(new_point);
-                values_.push_back(func_(points_.back()));
-                logs_.push_back(std::log(values_.back()));
+                }    
             }
 
+            // repopulate
+            {
+                size_t new_np = 0;
+                for (size_t i = 0; i < np; i++) {
+                    if (prob_[i] > gamma_) {
+                        points_[new_np] = points_[i];
+                        values_[new_np] = values_[i];
+                        logs_[new_np] = values_[i];
+                        new_np++;
+                    }
+                }
+                points_.resize(new_np);
+                values_.resize(new_np);
+                logs_.resize(new_np);
+            }
+
+            points_.emplace_back(new_point);
+            values_.push_back(func_(points_.back()));
+            logs_.push_back(std::log(values_.back()));
             return values_.back();
         }
 

@@ -18,7 +18,7 @@ using namespace swarm_algorithm;
 
 int main() {
 
-    constexpr int dims = 10;
+    constexpr int dims = 2;
 
     const auto func = [](const hvector<dims>& v) -> double {
         
@@ -34,14 +34,6 @@ int main() {
     hrect rect({
         std::make_pair(-100.0, 100.0),
         std::make_pair(-100.0, 100.0),
-        std::make_pair(-100.0, 100.0),
-        std::make_pair(-100.0, 100.0),
-        std::make_pair(-100.0, 100.0),
-        std::make_pair(-100.0, 100.0),
-        std::make_pair(-100.0, 100.0),
-        std::make_pair(-100.0, 100.0),
-        std::make_pair(-100.0, 100.0),
-        std::make_pair(-100.0, 100.0),
         });
 
     //array<int, 6> funcIds = { 5, 1, 16, 19, 28, 30 };
@@ -51,7 +43,7 @@ int main() {
         cec17_init("SoFA", funcid, dims);
 
         sofa_base<dims> algo(func, rect, 234356);
-        auto sol = algo.result(99900, true);
+        auto sol = algo.result(19900, true);
 
         cout << "Best Random[F" << funcid << "]: " << sol.second << endl;
         for (int i = 0; i < sol.first.dims(); i++) cout << sol.first[i] << ' ';
