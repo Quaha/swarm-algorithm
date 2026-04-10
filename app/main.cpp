@@ -31,10 +31,7 @@ int main() {
         return 1.0 / (1.0 + std::exp(coef * val));
         };
 
-    hrect rect({
-        std::make_pair(-100.0, 100.0),
-        std::make_pair(-100.0, 100.0),
-        });
+    hrect rect(std::make_pair(-100.0, 100.0), dims);
 
     //array<int, 6> funcIds = { 5, 1, 16, 19, 28, 30 };
     array<int, 3> funcIds = { 5, 1, 28 };
@@ -43,17 +40,17 @@ int main() {
         cec17_init("SoFA", funcid, dims);
 
         sofa_base<dims> algo(func, rect, 234356);
-        auto sol = algo.result(19900, true);
+        auto sol = algo.result(20000, true);
 
         cout << "Best Random[F" << funcid << "]: " << sol.second << endl;
-        for (int i = 0; i < sol.first.dims(); i++) cout << sol.first[i] << ' ';
-        cout << endl;
+        //for (int i = 0; i < sol.first.dims(); i++) cout << sol.first[i] << ' ';
+        //cout << endl;
 
         auto bests = algo.dump_bests();
         for (auto& vv : bests) {
-            cout << "Step: " << get<0>(vv) << " Value: " << get<2>(vv) << " Pos: ";
-            for (int i = 0; i < get<1>(vv).dims(); i++) cout << get<1>(vv)[i] << ' ';
-            cout << '\n';
+            cout << "Step: " << get<0>(vv) << " Value: " << get<2>(vv) << " Pos: \n";
+            //for (int i = 0; i < get<1>(vv).dims(); i++) cout << get<1>(vv)[i] << ' ';
+            //cout << '\n';
         }
     }
 

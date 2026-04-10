@@ -9,6 +9,15 @@ namespace swarm_algorithm {
     class hrect {
     public:
         using bounds_type = std::pair<double, double>;
+        hrect(bounds_type bounds, size_t dims) {
+            if (dims == 0) {
+                throw std::invalid_argument("hrect must have at least one dimension.");
+            }
+
+            max_dim_ = bounds.second - bounds.first;
+            bounds_.assign(dims, bounds);
+        }
+
         hrect(std::initializer_list<bounds_type> bounds) : bounds_(bounds) {
             if (bounds_.empty()) {
                 throw std::invalid_argument("hrect must have at least one dimension.");

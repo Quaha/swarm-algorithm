@@ -73,6 +73,18 @@ namespace swarm_algorithm {
             return best_upds_;
         }
 
+        void set_start_population_size(size_t sz) {
+            start_population_size_ = sz;
+        }
+
+        void set_gamma(double val) {
+            gamma_ = val;
+        }
+
+        void set_psi(double (*fun)(size_t)) {
+            psi_ = fun;
+        }
+
         void reserve_buffers(size_t size) {
             f_psi_.resize(std::max(f_psi_.size(), size));
             rho_.resize(std::max(rho_.size(), size));
@@ -80,8 +92,12 @@ namespace swarm_algorithm {
         }
 
     private:
+        double (*psi_)(size_t) = [](size_t k) -> double {
+            return std::sqrt((static_cast<double>(k) * 0.001 + 1.0));
+            };
+
         uint64_t seed_;
-            
+
         function_ptr_type func_;
         hrect search_area_;
         rand_precalc<Xoshiro::Xoshiro256PP> gen_;
@@ -132,10 +148,6 @@ namespace swarm_algorithm {
         std::vector<double> prob_;
 
         double make_step(size_t k) {
-            const auto psi_ = [](size_t k) -> double {
-                return std::sqrt((static_cast<double>(k) * 0.001 + 1.0));
-                };
-
             const size_t np = points_.size();
 
             reserve_buffers(np + 1);
@@ -184,10 +196,23 @@ namespace swarm_algorithm {
 
                 for (size_t i = 0; i < DIM; i++) {
 
-                    double x = normal_distr_.generate(points_[pivot_index][i], stddev, i);
+                    std::normal_distribution distr(points_[pivot_index][i], stddev);
+                    const auto [l, r] = search_area_.get(i);
+
+                    bool accept = false;
+                    double x = 0.0;
+                    while (!accept) {
+                        double candidate = distr(gen_);
+                        if (l <= candidate && candidate <= r) {
+                            x = candidate;
+                            accept = true;
+                        }
+                    }
+
+                    //double x = normal_distr_.generate(points_[pivot_index][i], stddev, i);
 
                     new_point[i] = x;
-                }    
+                }
             }
 
             // repopulate
