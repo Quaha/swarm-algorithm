@@ -222,7 +222,7 @@ namespace swarm_algorithm {
                     if (prob_[i] > gamma_) {
                         points_[new_np] = points_[i];
                         values_[new_np] = values_[i];
-                        logs_[new_np] = values_[i];
+                        logs_[new_np] = logs_[i];
                         new_np++;
                     }
                 }
