@@ -151,9 +151,9 @@ def plot_multiple_csv(csv_files, labels=None, output_file=None, title=None,
                 continue
             
             # Построение линии
-            line = ax.plot(df['Iteration'], df['Fitness'], 
-                          color=colors[i], linewidth=linewidth, 
-                          label=label, alpha=0.9)
+            ax.plot(df['Iteration'], df['Fitness'], 
+                   color=colors[i], linewidth=linewidth, 
+                   label=label, alpha=0.9)
             
             # Продлеваем линию до правого края
             if len(df) > 0:
@@ -171,27 +171,12 @@ def plot_multiple_csv(csv_files, labels=None, output_file=None, title=None,
                 best_value = df['Fitness'][best_idx]
                 best_iteration = df['Iteration'][best_idx]
                 
-                coord_cols = [col for col in df.columns if col not in ['Iteration', 'Fitness']]
-                if coord_cols:
-                    coords = {col: df.iloc[best_idx][col] for col in coord_cols[:5]}  # Первые 5 координат
-                    coord_text = ', '.join([f'{k}: {v:.6f}' for k, v in coords.items()])
-                    if len(coord_cols) > 5:
-                        coord_text += ', ...'
-                    
-                    ax.annotate(f'Best: {best_value:.6f}\n{coord_text}', 
-                              xy=(best_iteration, best_value),
-                              xytext=(10, -10), textcoords='offset points',
-                              bbox=dict(boxstyle='round,pad=0.5', facecolor='white', 
-                                      edgecolor=colors[i], alpha=0.8),
-                              fontsize=7, family='monospace', color=colors[i])
-                
-                best_values.append((label, best_value, best_iteration, colors[i]))
-                
                 # Добавляем пунктирную линию от лучшей точки до правого края
                 if best_iteration < max_iteration:
                     ax.hlines(y=best_value, xmin=best_iteration, xmax=max_iteration, 
                             colors=colors[i], linestyles='solid', linewidth=linewidth, alpha=0.4)
                 
+                # ТОЛЬКО ОДИН РАЗ ДОБАВЛЯЕМ В СПИСОК
                 best_values.append((label, best_value, best_iteration, colors[i]))
                 
         except Exception as e:
@@ -227,7 +212,18 @@ def plot_multiple_csv(csv_files, labels=None, output_file=None, title=None,
         
         annotation_text = "Best values:\n"
         for label, value, iteration, color in best_values_sorted:
-            annotation_text += f"{label}: {value:.6f} (iter {iteration})\n"
+            # Ищем соответствующий файл для получения координат
+            csv_file = csv_files[labels.index(label)] if label in labels else None
+            coord_info = ""
+            if csv_file:
+                df = pd.read_csv(csv_file)
+                best_idx = df['Fitness'].idxmax()
+                coord_cols = [col for col in df.columns if col not in ['Iteration', 'Fitness']]
+                if coord_cols:
+                    coords = {col: f"{df.iloc[best_idx][col]:.4f}" for col in coord_cols}
+                    coord_info = " | " + ", ".join([f"{k}={v}" for k, v in coords.items()])
+            
+            annotation_text += f"{label}: {value:.6f} (iter {iteration}){coord_info}\n"
         
         # Размещаем текст в правом нижнем углу
         plt.figtext(0.99, 0.01, annotation_text, 
@@ -245,8 +241,15 @@ def plot_multiple_csv(csv_files, labels=None, output_file=None, title=None,
         # Сохраняем также CSV с лучшими значениями
         stats_file = os.path.splitext(output_file)[0] + '_stats.csv'
         if best_values:
-            stats_df = pd.DataFrame([(l, v, i) for l, v, i, _ in best_values], 
-                                   columns=['Label', 'Best_Fitness', 'Best_Iteration'])
+            # Убираем дубликаты (на случай если остались)
+            unique_best = []
+            seen = set()
+            for l, v, i, c in best_values:
+                if l not in seen:
+                    unique_best.append((l, v, i))
+                    seen.add(l)
+            
+            stats_df = pd.DataFrame(unique_best, columns=['Label', 'Best_Fitness', 'Best_Iteration'])
             stats_df.to_csv(stats_file, index=False)
             print(f"Best values saved to {stats_file}")
     else:

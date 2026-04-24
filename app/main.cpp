@@ -9,6 +9,7 @@
 #include "hvector.hpp"
 #include "hrect.hpp"
 #include "sofa_base.hpp"
+#include "sofam.hpp"
 #include "crs.hpp"
 #include "mingo.hpp"
 #include "de.hpp"
@@ -21,7 +22,7 @@ using namespace std;
 using namespace swarm_algorithm;
 
 constexpr int dims = 10;
-constexpr int steps = 20000;
+constexpr int steps = 200000;
 const hrect rect(make_pair(-100.0, 100.0), dims);
 
 double inverse(const hvector<dims>& v) {
@@ -66,6 +67,7 @@ void run_test(const string& algoName) {
 int main() {
 
     run_test<sofa_base<dims>>("SoFA");
+    run_test<sofam_base<dims>>("SoFAM");
     run_test<de_base<dims>>("DE");
     run_test<mingo_base<dims>>("MINGO");
     run_test<crs_base<dims>>("CRS");

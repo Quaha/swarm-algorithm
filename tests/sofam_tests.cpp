@@ -2,10 +2,14 @@
 #include <cmath>
 #include <cstdint>
 #include "hvector.hpp"
-#include "sofa_base.hpp"
+#include "sofam.hpp"
 
 using namespace swarm_algorithm;
 
+// SoFAM improves on SoFA by replacing the base SoFA's isotropic normal
+// mutations with an anisotropic truncated-Cauchy mutation operator, with
+// a shifted-centre "strong" branch governed by Q and H. In 2D it is
+// noticeably more accurate than base SoFA and competitive with DE/MINGO.
 // Tests:
 //   1. SphereConvergence                  -- unimodal, strict
 //   2. RastriginFindsGlobalOptimum        -- multimodal, known-good seed
@@ -14,7 +18,7 @@ using namespace swarm_algorithm;
 //                                            overridden without breaking
 //                                            convergence on unimodal f
 
-TEST(SofaTests, SphereConvergence) {
+TEST(SofamTests, SphereConvergence) {
 
     // Unimodal, global max at (1, 1), f* = 1.
     const auto func = [](const hvector<2>& v) -> double {
@@ -28,7 +32,7 @@ TEST(SofaTests, SphereConvergence) {
         std::make_pair(-3.0, 3.0)
         });
 
-    sofa_base<2> algo(func, rect, 23445);
+    sofam_base<2> algo(func, rect, 23445);
     auto res = algo.result(10000);
 
     // SoFAM is stochastic -- slightly looser tolerances than CRS/DE.
@@ -37,7 +41,7 @@ TEST(SofaTests, SphereConvergence) {
     EXPECT_GE(res.second, 0.999);
 }
 
-TEST(SofaTests, RastriginFindsGlobalOptimum) {
+TEST(SofamTests, RastriginFindsGlobalOptimum) {
 
     // Inverted Rastrigin -- multimodal, global max at (2, 2), f* = 0.5.
     // Unlike base SoFA (which typically locks onto the basin around
@@ -49,7 +53,7 @@ TEST(SofaTests, RastriginFindsGlobalOptimum) {
         constexpr double DPI = 6.283185307179586476925286766559;
 
         double rastrigin = -20.0 + (10.0 * cos(DPI * x) - x * x)
-            + (10.0 * cos(DPI * y) - y * y);
+                                 + (10.0 * cos(DPI * y) - y * y);
 
         return 1.0 / (1.0 + std::exp(-0.25 * rastrigin));
         };
@@ -59,7 +63,7 @@ TEST(SofaTests, RastriginFindsGlobalOptimum) {
         std::make_pair(-3.0, 3.0)
         });
 
-    sofa_base<2> algo(func, rect, 23445);
+    sofam_base<2> algo(func, rect, 23445);
     auto res = algo.result(10000);
 
     EXPECT_LE(std::abs(res.first[0] - 2.0), 0.05);
@@ -67,7 +71,7 @@ TEST(SofaTests, RastriginFindsGlobalOptimum) {
     EXPECT_LE(std::abs(res.second - 0.5), 0.01);
 }
 
-TEST(SofaTests, RastriginRobustness) {
+TEST(SofamTests, RastriginRobustness) {
 
     // Across multiple seeds, SoFAM should find the global optimum with
     // high reliability -- this mirrors how the paper evaluates the
@@ -80,7 +84,7 @@ TEST(SofaTests, RastriginRobustness) {
         constexpr double DPI = 6.283185307179586476925286766559;
 
         double rastrigin = -20.0 + (10.0 * cos(DPI * x) - x * x)
-            + (10.0 * cos(DPI * y) - y * y);
+                                 + (10.0 * cos(DPI * y) - y * y);
 
         return 1.0 / (1.0 + std::exp(-0.25 * rastrigin));
         };
@@ -93,7 +97,7 @@ TEST(SofaTests, RastriginRobustness) {
     const uint64_t seeds[] = { 23445, 42, 1337, 7, 99, 2024 };
     int global_hits = 0;
     for (uint64_t s : seeds) {
-        sofa_base<2> algo(func, rect, s);
+        sofam_base<2> algo(func, rect, s);
         auto res = algo.result(10000);
         if (res.second >= 0.499) ++global_hits;
     }
@@ -101,34 +105,34 @@ TEST(SofaTests, RastriginRobustness) {
     EXPECT_GE(global_hits, 5);
 }
 
-//TEST(SofaTests, CustomSchedules) {
-//
-//    // Sanity check: overriding varsigma(k) and phi(k) should not break
-//    // convergence on a simple unimodal problem.
-//    const auto func = [](const hvector<2>& v) -> double {
-//        double x = v[0] - 1.0;
-//        double y = v[1] - 1.0;
-//        return 1.0 / (1.0 + x * x + y * y);
-//        };
-//
-//    hrect rect({
-//        std::make_pair(-3.0, 3.0),
-//        std::make_pair(-3.0, 3.0)
-//        });
-//
-//    sofa_base<2> algo(func, rect, 23445);
-//    // Slightly faster-decaying varsigma than the theorem's rate.
-//    algo.set_varsigma([](size_t k) -> double {
-//        if (k < 1) k = 1;
-//        return std::pow(1.0 / static_cast<double>(k), 0.35);
-//        });
-//    // More aggressive selection pressure.
-//    algo.set_phi([](size_t k) -> double {
-//        return std::sqrt(static_cast<double>(k) * 0.005 + 1.0);
-//        });
-//
-//    auto res = algo.result(10000);
-//    EXPECT_LE(std::abs(res.first[0] - 1.0), 0.05);
-//    EXPECT_LE(std::abs(res.first[1] - 1.0), 0.05);
-//    EXPECT_GE(res.second, 0.99);
-//}
+TEST(SofamTests, CustomSchedules) {
+
+    // Sanity check: overriding varsigma(k) and phi(k) should not break
+    // convergence on a simple unimodal problem.
+    const auto func = [](const hvector<2>& v) -> double {
+        double x = v[0] - 1.0;
+        double y = v[1] - 1.0;
+        return 1.0 / (1.0 + x * x + y * y);
+        };
+
+    hrect rect({
+        std::make_pair(-3.0, 3.0),
+        std::make_pair(-3.0, 3.0)
+        });
+
+    sofam_base<2> algo(func, rect, 23445);
+    // Slightly faster-decaying varsigma than the theorem's rate.
+    algo.set_varsigma([](size_t k) -> double {
+        if (k < 1) k = 1;
+        return std::pow(1.0 / static_cast<double>(k), 0.35);
+        });
+    // More aggressive selection pressure.
+    algo.set_phi([](size_t k) -> double {
+        return std::sqrt(static_cast<double>(k) * 0.005 + 1.0);
+        });
+
+    auto res = algo.result(10000);
+    EXPECT_LE(std::abs(res.first[0] - 1.0), 0.05);
+    EXPECT_LE(std::abs(res.first[1] - 1.0), 0.05);
+    EXPECT_GE(res.second, 0.99);
+}
