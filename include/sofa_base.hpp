@@ -192,7 +192,7 @@ namespace swarm_algorithm {
             // gen new point
             hvector<DIM> new_point;
             {
-                double stddev = search_area_.max_dim() * sqrt(search_area_.dimensions_cnt() / log(k));
+                double stddev = search_area_.max_dim() * sqrt(2 * search_area_.dimensions_cnt() / log(k));
 
                 for (size_t i = 0; i < DIM; i++) {
 

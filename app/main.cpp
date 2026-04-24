@@ -22,37 +22,44 @@ using namespace swarm_algorithm;
 
 constexpr int dims = 10;
 constexpr int steps = 20000;
-hrect rect(std::make_pair(-100.0, 100.0), dims);
+const hrect rect(make_pair(-100.0, 100.0), dims);
 
-const auto inverse = [](const hvector<dims>& v) -> double {
+double inverse(const hvector<dims>& v) {
     const auto* x = v.data();
-
     double val = cec17_error(cec17_fitness(const_cast<double*>(x)));
+    constexpr double coef = 1e4 * dims;
+    return max(0.0, coef - val);
+}
 
-    return 20000.0 - val;
-};
+double inverseSigmoid(const hvector<dims>& v) {
+    const auto* x = v.data();
+    double val = cec17_error(cec17_fitness(const_cast<double*>(x)));
+    constexpr double coef = 1e-10 / dims;
+    return 1.0 / (1.0 + exp(coef * val));
+}
 
 template<typename AlgoT>
 void run_test(const string& algoName) {
-    const static array<int, 5> funcIds = {
-        5, // rastrigin
-        1, // bent sigar
-        16,// hybrid 6
-        19,// hybrid 9
-        28,// composition 8
-        //30 // composition 10
-    };
+    using FuncPtr = double (*)(const hvector<dims>&);
+    const array<pair<int, FuncPtr>, 6> funcIds = { {
+        { 5, inverse },      // rastrigin
+        { 1, inverseSigmoid },      // bent cigar
+        { 16, inverse },     // hybrid 6
+        { 19, inverseSigmoid },     // hybrid 9
+        { 28, inverse },     // composition 8
+        { 30, inverseSigmoid }      // composition 10
+    } };
 
     cout << algoName << '\n';
     for (auto funcid : funcIds) {
-        cec17_init(algoName.c_str(), funcid, dims);
+        cec17_init(algoName.c_str(), funcid.first, dims);
 
-        AlgoT algo(inverse, rect, 234356);
+        AlgoT algo(funcid.second, rect, 234356);
         auto sol = algo.result(steps, true);
 
-        cout << "Best "+algoName+"[F" << funcid << "]: " << sol.second << endl;
+        cout << "Best "+algoName+"[F" << funcid.first << "]: " << sol.second << endl;
 
-        saveBestsToCSV(algo.dump_bests(), algoName + "_" + to_string(funcid) + ".csv");
+        saveBestsToCSV(algo.dump_bests(), algoName + "_" + to_string(funcid.first) + ".csv");
     }
 }
 

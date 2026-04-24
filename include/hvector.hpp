@@ -25,6 +25,7 @@ namespace swarm_algorithm {
             size_t i = 0;
             for (fp_t v : data) {
                 data_[i] = v;
+                i++;
             }
         }
 

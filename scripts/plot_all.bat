@@ -5,3 +5,5 @@ python .\plotter.py "..\build\CRS_5.csv" "..\build\SOFA_5.csv" "..\build\MINGO_5
 python .\plotter.py "..\build\CRS_16.csv" "..\build\SOFA_16.csv" "..\build\MINGO_16.csv" "..\build\DE_16.csv" --title "Hybrid6 func" -o "out\Hybrid6_func.jpg"
 python .\plotter.py "..\build\CRS_19.csv" "..\build\SOFA_19.csv" "..\build\MINGO_19.csv" "..\build\DE_19.csv" --title "Hybrid9 func" -o "out\Hybrid9_func.jpg"
 python .\plotter.py "..\build\CRS_28.csv" "..\build\SOFA_28.csv" "..\build\MINGO_28.csv" "..\build\DE_28.csv" --title "Composition8 func" -o "out\Composit8_func.jpg"
+python .\plotter.py "..\build\CRS_30.csv" "..\build\SOFA_30.csv" "..\build\MINGO_30.csv" "..\build\DE_30.csv" --title "Composition10 func" -o "out\Composit10_func.jpg"
+

@@ -16,7 +16,7 @@ namespace swarm_algorithm {
 
         void seed(uint64_t seed) { gen_.seed(seed); }
 
-        size_t batch_size() const { return batch_size; }
+        size_t batch_size() const { return batch_size_; }
         void set_batch_size(size_t batch_size) {
             if (batch_size == 0) {
                 throw std::runtime_error("batch size must be positive.");

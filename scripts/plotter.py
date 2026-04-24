@@ -163,7 +163,7 @@ def plot_multiple_csv(csv_files, labels=None, output_file=None, title=None,
                 if last_iteration < max_iteration:
                     # Добавляем горизонтальную линию от последней точки до max_iteration
                     ax.hlines(y=last_value, xmin=last_iteration, xmax=max_iteration, 
-                            colors=colors[i], linestyles='solid', linewidth=linewidth*0.7, alpha=0.6)
+                            colors=colors[i], linestyles='solid', linewidth=linewidth, alpha=0.6)
             
             # Отмечаем лучшую точку
             if mark_best and len(df) > 0:
@@ -171,14 +171,26 @@ def plot_multiple_csv(csv_files, labels=None, output_file=None, title=None,
                 best_value = df['Fitness'][best_idx]
                 best_iteration = df['Iteration'][best_idx]
                 
-                ax.plot(best_iteration, best_value, '*', 
-                       color=colors[i], markersize=15, 
-                       markeredgecolor='black', markeredgewidth=1.5)
+                coord_cols = [col for col in df.columns if col not in ['Iteration', 'Fitness']]
+                if coord_cols:
+                    coords = {col: df.iloc[best_idx][col] for col in coord_cols[:5]}  # Первые 5 координат
+                    coord_text = ', '.join([f'{k}: {v:.6f}' for k, v in coords.items()])
+                    if len(coord_cols) > 5:
+                        coord_text += ', ...'
+                    
+                    ax.annotate(f'Best: {best_value:.6f}\n{coord_text}', 
+                              xy=(best_iteration, best_value),
+                              xytext=(10, -10), textcoords='offset points',
+                              bbox=dict(boxstyle='round,pad=0.5', facecolor='white', 
+                                      edgecolor=colors[i], alpha=0.8),
+                              fontsize=7, family='monospace', color=colors[i])
+                
+                best_values.append((label, best_value, best_iteration, colors[i]))
                 
                 # Добавляем пунктирную линию от лучшей точки до правого края
                 if best_iteration < max_iteration:
                     ax.hlines(y=best_value, xmin=best_iteration, xmax=max_iteration, 
-                            colors=colors[i], linestyles='--', linewidth=linewidth*0.5, alpha=0.4)
+                            colors=colors[i], linestyles='solid', linewidth=linewidth, alpha=0.4)
                 
                 best_values.append((label, best_value, best_iteration, colors[i]))
                 
@@ -190,6 +202,7 @@ def plot_multiple_csv(csv_files, labels=None, output_file=None, title=None,
     ax.set_xlim(0, max_iteration)
     
     # Настройка осей
+    ax.ticklabel_format(style='plain')
     ax.set_xlabel('Iteration', fontsize=12, fontweight='bold')
     ax.set_ylabel('Fitness Value', fontsize=12, fontweight='bold')
     
