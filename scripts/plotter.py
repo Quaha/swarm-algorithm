@@ -122,7 +122,7 @@ def plot_multiple_csv(csv_files, labels=None, output_file=None, title=None,
     
     # Если метки не указаны, используем имена файлов
     if labels is None:
-        labels = [os.path.splitext(os.path.basename(f))[0] for f in csv_files]
+        labels = [os.path.splitext(os.path.basename(f))[0].rsplit('_', 1)[0] for f in csv_files]
     
     # Подгоняем длину labels к длине csv_files
     if len(labels) < len(csv_files):

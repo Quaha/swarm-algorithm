@@ -35,7 +35,7 @@ double inverse(const hvector<dims>& v) {
 double inverseSigmoid(const hvector<dims>& v) {
     const auto* x = v.data();
     double val = cec17_error(cec17_fitness(const_cast<double*>(x)));
-    constexpr double coef = 1e-10 / dims;
+    constexpr double coef = 1e-8 / dims;
     return 1.0 / (1.0 + exp(coef * val));
 }
 
@@ -45,9 +45,9 @@ void run_test(const string& algoName) {
     const array<pair<int, FuncPtr>, 6> funcIds = { {
         { 5, inverseSigmoid },      // rastrigin
         { 1, inverseSigmoid },      // bent cigar
-        { 16, inverse },     // hybrid 6
+        { 16, inverseSigmoid },     // hybrid 6
         { 19, inverseSigmoid },     // hybrid 9
-        { 28, inverse },     // composition 8
+        { 28, inverseSigmoid },     // composition 8
         { 30, inverseSigmoid }      // composition 10
     } };
 
