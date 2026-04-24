@@ -22,7 +22,7 @@ using namespace std;
 using namespace swarm_algorithm;
 
 constexpr int dims = 10;
-constexpr int steps = 200000;
+constexpr int steps = 20000;
 const hrect rect(make_pair(-100.0, 100.0), dims);
 
 double inverse(const hvector<dims>& v) {
@@ -43,7 +43,7 @@ template<typename AlgoT>
 void run_test(const string& algoName) {
     using FuncPtr = double (*)(const hvector<dims>&);
     const array<pair<int, FuncPtr>, 6> funcIds = { {
-        { 5, inverse },      // rastrigin
+        { 5, inverseSigmoid },      // rastrigin
         { 1, inverseSigmoid },      // bent cigar
         { 16, inverse },     // hybrid 6
         { 19, inverseSigmoid },     // hybrid 9

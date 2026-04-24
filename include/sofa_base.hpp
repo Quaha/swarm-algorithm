@@ -227,35 +227,21 @@ namespace swarm_algorithm {
             // gen new point
             hvector<DIM> mutant = mutate(k, points_[pivot_idx]);
 
-            // (5) Evaluate the mutant. We do this BEFORE appending so
-            // that we can return the true mutant value even if the
-            // repopulation step later filters it out.
             const double mutant_val = func_(mutant);
             const double mutant_log = std::log(mutant_val);
 
-            // Update the best-so-far tracker here, based on the mutant
-            // we just evaluated. (The caller result() also looks at
-            // values_.back(), but the repopulation step can filter the
-            // mutant out of the population, so we handle the book-
-            // keeping locally to keep the semantics clean.)
             if (mutant_val > ans_) {
                 ans_ = mutant_val;
                 ans_point_ = mutant;
                 best_upds_.emplace_back(step_, ans_point_, ans_);
             }
 
-            // Append the mutant to the population, then repopulate.
-            // The slide runs "NP := NP + 1; population[NP] <- mutation"
-            // and *then* computes SumF over all NP, so we do the same.
             points_.emplace_back(mutant);
             values_.push_back(mutant_val);
             logs_.push_back(mutant_log);
 
-            // Recompute probabilities with the mutant included.
+            // repopulate
             compute_probs(k);
-
-            // Keep indices with prob >= gamma (slide uses ">=", base
-            // sofa code uses ">"; we follow the slide).
             size_t new_np = 0;
             const size_t old_np = points_.size();
             for (size_t i = 0; i < old_np; ++i) {
@@ -268,13 +254,7 @@ namespace swarm_algorithm {
                     ++new_np;
                 }
             }
-            // Safety: never let the population go empty -- otherwise
-            // the next roulette operates on an empty range. If gamma
-            // happens to kill everyone, keep the single best agent.
             if (new_np == 0) {
-                // Index `max_idx` is stale after the filter loop above,
-                // but the argmax over the original population is still
-                // a valid surviving agent for our fallback.
                 points_[0] = points_[max_idx];
                 values_[0] = values_[max_idx];
                 logs_[0] = logs_[max_idx];
