@@ -13,6 +13,7 @@ file(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS include/*.h*)
 
 # CEC2017 Lib
 add_subdirectory(external/cec2017/code)
+add_subdirectory(external/eigen-5.0.0)
 
 add_library(${PROJECT_NAME}_library
     ${SRC_FILES} 
@@ -26,7 +27,7 @@ target_include_directories(${PROJECT_NAME}_library
 )
 
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_library cec17_test_func)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_library cec17_test_func Eigen3::Eigen)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_library)
 
 # gtest
