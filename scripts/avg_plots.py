@@ -16,7 +16,7 @@ SHOW_CI = True               # показывать ли доверительн�
 # ===================================
 
 # Список алгоритмов (имена должны совпадать с префиксами в CSV-файлах)
-ALGORITHMS = ["SoFA", "SoFAM", "DE", "MINGO", "CRS"]
+ALGORITHMS = ["SoFA", "SoFAM", "DE", "MINGO", "CRS", "SoFAMG"]
 
 # Список тестовых функций (номера задач CEC17)
 FUNCTIONS = [5, 1, 16, 19, 28, 30]
@@ -70,7 +70,7 @@ def load_and_interpolate(algo, func_id, grid):
         # Это корректно: до первого улучшения – значение первого улучшения,
         # после последнего улучшения – последнее значение (алгоритм не ухудшается)
         interp = interp1d(iters, fits, kind="linear",
-                          fill_value=(0, fits[-1]), bounds_error=False)
+                          fill_value=(fits[0], fits[-1]), bounds_error=False)
         fitness_on_grid = interp(grid)
         all_fitness.append(fitness_on_grid)
 
@@ -101,10 +101,11 @@ def plot_function(algo_stats, func_id, grid):
     # Яркие цвета для алгоритмов (можно расширить)
     colors = {
         "SoFA": "#FF1F5B",
-        "SoFAM": "#00CD6C",
+        "SoFAM": "#2500F7",
         "DE": "#009ADE",
         "MINGO": "#AF58BA",
-        "CRS": "#FFC61E"
+        "CRS": "#6AD19E",
+        "SoFAMG": "#EC8E00",
     }
     
     for algo, (mean, lower, upper) in algo_stats.items():

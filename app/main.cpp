@@ -28,17 +28,19 @@ constexpr int dims = 10;
 constexpr int steps = 20000;
 const hrect rect(make_pair(-100.0, 100.0), dims);
 
-double inverse(const hvector<dims>& v) {
+template<double C>
+double inverse(const hvector<dims>& v, double c) {
     const auto* x = v.data();
     double val = cec17_error(cec17_fitness(const_cast<double*>(x)));
-    constexpr double coef = 1e4 * dims;
+    constexpr double coef = C * dims;
     return max(0.0, coef - val);
 }
 
+template<double C>
 double inverseSigmoid(const hvector<dims>& v) {
     const auto* x = v.data();
     double val = cec17_error(cec17_fitness(const_cast<double*>(x)));
-    constexpr double coef = 1e-8 / dims;
+    constexpr double coef = C / dims;
     return 1.0 / (1.0 + exp(coef * val));
 }
 
@@ -46,12 +48,12 @@ template<typename AlgoT>
 void run_test(const string& algoName) {
     using FuncPtr = double (*)(const hvector<dims>&);
     const array<pair<int, FuncPtr>, 6> funcIds = { {
-        { 5, inverseSigmoid },      // rastrigin
-        { 1, inverseSigmoid },      // bent cigar
-        { 16, inverseSigmoid },     // hybrid 6
-        { 19, inverseSigmoid },     // hybrid 9
-        { 28, inverseSigmoid },     // composition 8
-        { 30, inverseSigmoid }      // composition 10
+        { 5, inverseSigmoid<1e-3> },      // rastrigin
+        { 1, inverseSigmoid<1e-8> },      // bent cigar
+        { 16, inverseSigmoid<1e-7> },     // hybrid 6
+        { 19, inverseSigmoid<1e-4> },     // hybrid 9
+        { 28, inverseSigmoid<1e-8> },     // composition 8
+        { 30, inverseSigmoid<1e-7> }      // composition 10
     } };
 
     cout << algoName << '\n';
