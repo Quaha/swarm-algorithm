@@ -21,6 +21,8 @@ extern "C" {
 using namespace std;
 using namespace swarm_algorithm;
 
+constexpr int NUM_RUNS = 30;          // количество запусков
+constexpr uint64_t BASE_SEED = 234356;
 constexpr int dims = 10;
 constexpr int steps = 20000;
 const hrect rect(make_pair(-100.0, 100.0), dims);
@@ -53,14 +55,17 @@ void run_test(const string& algoName) {
 
     cout << algoName << '\n';
     for (auto funcid : funcIds) {
-        cec17_init(algoName.c_str(), funcid.first, dims);
+        for (int run = 0; run < NUM_RUNS; ++run) {
+            uint64_t seed = BASE_SEED + run * 1000 + funcid.first;
+            cec17_init(algoName.c_str(), funcid.first, dims);
 
-        AlgoT algo(funcid.second, rect, 234356);
-        auto sol = algo.result(steps, true);
+            AlgoT algo(funcid.second, rect, seed);
+            auto sol = algo.result(steps, true);
 
-        cout << "Best "+algoName+"[F" << funcid.first << "]: " << sol.second << endl;
-
-        saveBestsToCSV(algo.dump_bests(), algoName + "_" + to_string(funcid.first) + ".csv");
+            // Сохраняем каждый запуск в отдельный файл
+            string filename = algoName + "_" + to_string(funcid.first) + "_run" + to_string(run) + ".csv";
+            saveBestsToCSV(algo.dump_bests(), filename);
+        }
     }
 }
 
