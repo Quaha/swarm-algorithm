@@ -317,7 +317,12 @@ namespace swarm_algorithm {
 
             grad.normalize();
 
-            const double step_sz = effective_step_size();
+            const double base_step = effective_step_size();
+            const double steepness = std::atan(g_norm / base_step) / (3.1415926535897932384626433832795 / 2.0);
+            const double min_step = base_step * 0.01;
+            const double max_step = base_step * 2.0;
+            const double step_sz = max_step - steepness * (max_step - min_step);
+
             hvector<DIM> z_new;
             for (size_t d = 0; d < DIM; ++d)
                 z_new[d] = z_prime[d] + step_sz * grad(d);

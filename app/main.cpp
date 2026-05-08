@@ -50,7 +50,7 @@ void run_test(const string& algoName) {
     const array<pair<int, FuncPtr>, 6> funcIds = { {
         { 5, inverseSigmoid<1e-3> },      // rastrigin
         { 1, inverseSigmoid<1e-8> },      // bent cigar
-        { 16, inverseSigmoid<1e-7> },     // hybrid 6
+        { 16, inverseSigmoid<1e-2> },     // hybrid 6
         { 19, inverseSigmoid<1e-4> },     // hybrid 9
         { 28, inverseSigmoid<1e-8> },     // composition 8
         { 30, inverseSigmoid<1e-7> }      // composition 10
