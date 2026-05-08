@@ -7,7 +7,7 @@ from scipy.interpolate import interp1d
 
 # ========== CONFIGURATION ==========
 STEPS = 20000                # максимальное число итераций
-GRID_STEP = 500              # шаг равномерной сетки (чем меньше, тем детальнее)
+GRID_STEP = 100              # шаг равномерной сетки (чем меньше, тем детальнее)
 NUM_RUNS = 30                # ожидаемое число запусков (для проверки)
 DATA_DIR = ".."              # папка, содержащая build/
 BUILD_DIR = os.path.join(DATA_DIR, "build")
@@ -70,7 +70,7 @@ def load_and_interpolate(algo, func_id, grid):
         # Это корректно: до первого улучшения – значение первого улучшения,
         # после последнего улучшения – последнее значение (алгоритм не ухудшается)
         interp = interp1d(iters, fits, kind="linear",
-                          fill_value=(fits[0], fits[-1]), bounds_error=False)
+                          fill_value=(0, fits[-1]), bounds_error=False)
         fitness_on_grid = interp(grid)
         all_fitness.append(fitness_on_grid)
 
