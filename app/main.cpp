@@ -10,6 +10,7 @@
 #include "hrect.hpp"
 #include "sofa_base.hpp"
 #include "sofam.hpp"
+#include "sofamg.hpp"
 #include "crs.hpp"
 #include "mingo.hpp"
 #include "de.hpp"
@@ -76,6 +77,7 @@ int main() {
     run_test<de_base<dims>>("DE");
     run_test<mingo_base<dims>>("MINGO");
     run_test<crs_base<dims>>("CRS");
+    run_test<sofamg_base<dims>>("SoFAMG");
 
     return 0;
 }
