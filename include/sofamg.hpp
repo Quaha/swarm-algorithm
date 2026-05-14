@@ -386,7 +386,7 @@ namespace swarm_algorithm {
             if (gradient_enabled_) {
                 std::uniform_real_distribution<double> u01(0.0, 1.0);
                 if (u01(gen_) < gradient_prob_) {
-                    gradient_step(ref_idx);
+                    gradient_step(new_ref_idx);
                 }
             }
 
