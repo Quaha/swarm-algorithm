@@ -17,28 +17,6 @@
 
 
 namespace swarm_algorithm {
-
-    // Differential Evolution with the DE/current-to-best/1/bin variant.
-    // Reference:
-    //   R. Storn, K. Price, "Differential Evolution -- A Simple and
-    //   Efficient Heuristic for Global Optimization over Continuous
-    //   Spaces," J. Global Optim. 11, 341-359 (1997).
-    //
-    // Mutation (per target i, with F > 0):
-    //   v_i = x_i + F*(x_best - x_i) + F*(x_r1 - x_r2),
-    //   r1 != r2 != i, picked uniformly at random from the population.
-    //
-    // Binomial crossover (per coordinate j, with CR in [0, 1]):
-    //   u_i,j = v_i,j  if rand() <= CR or j == j_rand,
-    //           x_i,j  otherwise.
-    //
-    // Selection (formulated for MAXIMIZATION, to match sofa_base):
-    //   x_i <- u_i  if f(u_i) >= f(x_i).
-    //
-    // Each main-loop iteration processes exactly one target vector and
-    // consumes exactly one evaluation of f, so `iter_count` in result()
-    // has the same meaning as in sofa_base/crs_base.
-
     template <size_t DIM> class de_base final {
     public:
         using function_ptr_type = double (*)(const hvector<DIM>&);
@@ -92,8 +70,6 @@ namespace swarm_algorithm {
         }
 
         void set_population_size(size_t sz) {
-            // DE needs at least 4 points: target (i) + best + r1 + r2,
-            // all distinct.
             if (sz < 4) {
                 throw std::invalid_argument("population size must be >= 4.");
             }
@@ -118,8 +94,6 @@ namespace swarm_algorithm {
         hrect search_area_;
         rand_precalc<Xoshiro::Xoshiro256PP> gen_;
 
-        // Parameter defaults per Storn & Price: F = 0.5, CR = 0.9,
-        // NP = 10 * D. (They also suggest NP = 5..10 * D.)
         size_t population_size_ = 10 * DIM;
         double F_ = 0.5;
         double CR_ = 0.9;
@@ -136,7 +110,6 @@ namespace swarm_algorithm {
         std::vector<double> values_;
         std::vector<std::tuple<size_t, hvector<DIM>, double>> best_upds_;
 
-        // Scratch buffer reused between iterations to avoid allocations.
         hvector<DIM> trial_;
 
         void initialize() {
@@ -175,8 +148,6 @@ namespace swarm_algorithm {
             }
         }
 
-        // Pick a random index in [0, N) different from all of `exclude`.
-        // `exclude` is small (at most 3 entries), linear scan is fine.
         size_t random_index_excluding(
             size_t N,
             std::initializer_list<size_t> exclude) {
@@ -195,9 +166,6 @@ namespace swarm_algorithm {
             const size_t N = points_.size();
             const size_t i = current_i_;
 
-            // Pick r1, r2: both different from i, different from each other.
-            // x_best may legitimately coincide with x_i (when i == best_idx_);
-            // this is the standard behaviour of DE/current-to-best.
             size_t r1 = random_index_excluding(N, { i });
             size_t r2 = random_index_excluding(N, { i, r1 });
 
@@ -206,7 +174,6 @@ namespace swarm_algorithm {
             const auto& x_r1    = points_[r1];
             const auto& x_r2    = points_[r2];
 
-            // Mutation: v = x_i + F*(x_best - x_i) + F*(x_r1 - x_r2).
             hvector<DIM> v;
             for (size_t k = 0; k < DIM; ++k) {
                 v[k] = x_i[k]
@@ -214,10 +181,6 @@ namespace swarm_algorithm {
                      + F_ * (x_r1[k]   - x_r2[k]);
             }
 
-            // Bound repair: mutant coordinates out of range are
-            // re-initialised uniformly within the bounds. This is the
-            // scheme used by e.g. mealpy and pymoo; it is simple and
-            // preserves population diversity better than naive clipping.
             std::uniform_real_distribution<double> u01(0.0, 1.0);
             for (size_t k = 0; k < DIM; ++k) {
                 const auto [l, r] = search_area_.get(k);
@@ -227,7 +190,6 @@ namespace swarm_algorithm {
                 }
             }
 
-            // Binomial crossover. j_rand guarantees u_i != x_i.
             std::uniform_int_distribution<size_t> dim_distr(0, DIM - 1);
             const size_t j_rand = dim_distr(gen_);
             for (size_t k = 0; k < DIM; ++k) {

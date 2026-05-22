@@ -19,18 +19,6 @@
 
 namespace swarm_algorithm {
 
-    // Controlled Random Search 2 with Local Mutation (CRS2-LM).
-    // Reference:
-    //   P. Kaelo, M. M. Ali, "Some variants of the controlled random
-    //   search algorithm for global optimization," J. Optim. Theory Appl.
-    //   130 (2), 253-264 (2006).
-    //
-    // Formulated for MAXIMIZATION to match sofa_base API:
-    //   'best'  = argmax_i f(x_i)
-    //   'worst' = argmin_i f(x_i)
-    // Each main-loop iteration consumes exactly one evaluation of f,
-    // so `iter_count` in result() has the same meaning as in sofa_base.
-
     template <size_t DIM> class crs_base final {
     public:
         using function_ptr_type = double (*)(const hvector<DIM>&);
@@ -64,12 +52,6 @@ namespace swarm_algorithm {
 
             auto steps_begin = std::chrono::steady_clock::now();
 
-            // Trial-generation state-machine for the main loop:
-            //   need_new_trial         -> build a fresh reflection trial
-            //   !need_new_trial && !after_local_mutation
-            //                          -> previous trial failed; build local mutation
-            //   after_local_mutation   -> previous local mutation also failed;
-            //                             next iteration must build a fresh trial
             bool need_new_trial = true;
             bool after_local_mutation = false;
 
@@ -121,8 +103,6 @@ namespace swarm_algorithm {
         }
 
         void set_population_size(size_t sz) {
-            // Kaelo & Ali default is 10*(n+1); minimum must be n+1
-            // (otherwise we cannot form a simplex).
             if (sz < DIM + 1) {
                 throw std::invalid_argument(
                     "population size must be >= DIM+1.");
@@ -149,7 +129,6 @@ namespace swarm_algorithm {
         std::vector<double> values_;
         std::vector<std::tuple<size_t, hvector<DIM>, double>> best_upds_;
 
-        // Scratch buffers reused between iterations to avoid allocations.
         std::vector<size_t> shuffled_indices_;
         hvector<DIM> trial_;
         hvector<DIM> centroid_;
@@ -196,23 +175,15 @@ namespace swarm_algorithm {
             }
         }
 
-        // Build a reflection trial point (CRS2 core step):
-        //   1. Pick n distinct random indices from population \ {best_idx_}.
-        //   2. Let x_n be the last picked point; remaining n-1 plus best
-        //      form the simplex used for the centroid.
-        //   3. Centroid G = (1/n) * (best + sum of n-1 others).
-        //   4. Trial = 2*G - x_n, clipped to bounds.
         void build_trial_reflection() {
             const size_t N = points_.size();
             const size_t n = DIM;
 
-            // Fill pool with all indices except best_idx_.
             shuffled_indices_.clear();
             for (size_t i = 0; i < N; ++i) {
                 if (i != best_idx_) shuffled_indices_.push_back(i);
             }
 
-            // Partial Fisher-Yates: randomize the first n positions only.
             const size_t pool = shuffled_indices_.size(); // = N - 1
             for (size_t i = 0; i < n; ++i) {
                 std::uniform_int_distribution<size_t> distr(i, pool - 1);
@@ -220,7 +191,6 @@ namespace swarm_algorithm {
                 std::swap(shuffled_indices_[i], shuffled_indices_[j]);
             }
 
-            // Centroid over { best, indices[0..n-2] }.
             for (size_t k = 0; k < DIM; ++k) {
                 centroid_[k] = points_[best_idx_][k];
             }
@@ -231,7 +201,6 @@ namespace swarm_algorithm {
             const double inv_n = 1.0 / static_cast<double>(n);
             for (size_t k = 0; k < DIM; ++k) centroid_[k] *= inv_n;
 
-            // Trial = 2*centroid - x_n, clipped to bounds.
             const auto& x_n = points_[shuffled_indices_[n - 1]];
             for (size_t k = 0; k < DIM; ++k) {
                 double v = 2.0 * centroid_[k] - x_n[k];
@@ -242,9 +211,6 @@ namespace swarm_algorithm {
             }
         }
 
-        // Local mutation (Kaelo & Ali 2006):
-        //   x'_k = (1+w_k)*best_k - w_k*trial_k,   w_k ~ U[0,1]   (fresh per coord)
-        // Applied to the trial that just failed to improve the worst point.
         void build_trial_local_mutation() {
             std::uniform_real_distribution<double> wdist(0.0, 1.0);
             const auto& best = points_[best_idx_];
