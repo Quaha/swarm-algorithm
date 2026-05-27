@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes, mark_inset
 
 # ========== CONFIGURATION ==========
 STEPS = 20000                # максимальное число итераций
@@ -93,12 +94,12 @@ def compute_statistics(fitness_matrix):
 
 def plot_function(algo_stats, func_id, grid):
     """
-    Рисует один график для заданной функции.
-    algo_stats: словарь {algo: (mean, lower, upper)}.
+    Рисует один график для заданной функции
+    + inset zoom для левого верхнего угла.
     """
-    plt.figure(figsize=(12, 7))
-    
-    # Яркие цвета для алгоритмов (можно расширить)
+
+    fig, ax = plt.subplots(figsize=(12, 7))
+
     colors = {
         "SoFA": "#FF1F5B",
         "SoFAM": "#2500F7",
@@ -107,32 +108,115 @@ def plot_function(algo_stats, func_id, grid):
         "CRS": "#6AD19E",
         "SoFAMG": "#EC8E00",
     }
-    
+
+    # ========= ОСНОВНОЙ ГРАФИК =========
     for algo, (mean, lower, upper) in algo_stats.items():
         color = colors.get(algo, "#333333")
-        # Линия среднего
-        plt.plot(grid, mean, label=algo, color=color, linewidth=2.5)
+
+        ax.plot(grid, mean,
+                label=algo,
+                color=color,
+                linewidth=2.5)
+
         if SHOW_CI:
-            # Доверительный интервал в виде полупрозрачной области
-            plt.fill_between(grid, lower, upper, color=color, alpha=0.2)
-    
-    # Настройка графика
+            ax.fill_between(grid, lower, upper,
+                            color=color,
+                            alpha=0.2)
+
     func_title = FUNC_NAMES.get(func_id, f"Function {func_id}")
-    plt.title(f"Convergence on {func_title}", fontsize=14, fontweight="bold")
-    plt.xlabel("Iteration", fontsize=12)
-    plt.ylabel("Fitness", fontsize=12)
-    plt.grid(True, alpha=0.3, linestyle="--")
-    plt.legend(loc="best", fontsize=10)
+
+    ax.set_title(
+        f"Convergence on {func_title}",
+        fontsize=14,
+        fontweight="bold"
+    )
+
+    ax.set_xlabel("Iteration", fontsize=12)
+    ax.set_ylabel("Fitness", fontsize=12)
+
+    ax.grid(True, alpha=0.3, linestyle="--")
+    ax.legend(loc="best", fontsize=10)
+
+    # =========================================================
+    # ==================== ZOOM INSET =========================
+    # =========================================================
+
+    # Берем первые 35% итераций
+    zoom_end = int(STEPS * 0.35)
+
+    # Индексы соответствующего диапазона
+    mask = grid <= zoom_end
+
+    # Собираем min/max по всем алгоритмам
+    y_values = []
+
+    for algo, (mean, lower, upper) in algo_stats.items():
+        y_values.extend(lower[mask])
+        y_values.extend(upper[mask])
+
+    y_min = np.min(y_values)
+    y_max = np.max(y_values)
+
+    y_min = y_min + (y_max - y_min) * 0.85
     
-    # Опционально: логарифмическая шкала, если значения сильно различаются
-    # plt.yscale("log")
-    
+    print(y_min, y_max)
+
+    # Создаем inset справа сверху
+    axins = inset_axes(
+        ax,
+        width="40%",
+        height="40%",
+        loc="center right"
+    )
+
+    # Рисуем те же данные
+    for algo, (mean, lower, upper) in algo_stats.items():
+        color = colors.get(algo, "#333333")
+
+        axins.plot(grid, mean,
+                   color=color,
+                   linewidth=2.0)
+
+        if SHOW_CI:
+            axins.fill_between(grid, lower, upper,
+                               color=color,
+                               alpha=0.2)
+
+    # Границы zoom
+    axins.set_xlim(0, zoom_end)
+    axins.set_ylim(y_min, y_max)
+
+    # Более компактная сетка
+    axins.grid(True, alpha=0.2, linestyle="--")
+
+    # Можно скрыть подписи inset
+    axins.tick_params(labelsize=8)
+
+    # Показываем область zoom на основном графике
+    mark_inset(
+        ax,
+        axins,
+        loc1=2,
+        loc2=4,
+        fc="none",
+        ec="0.5"
+    )
+
     plt.tight_layout()
-    
-    # Сохраняем график
-    out_file = os.path.join(OUTPUT_DIR, f"function_{func_id}_average.png")
-    plt.savefig(out_file, dpi=150, bbox_inches="tight")
+
+    out_file = os.path.join(
+        OUTPUT_DIR,
+        f"function_{func_id}_average.png"
+    )
+
+    plt.savefig(
+        out_file,
+        dpi=150,
+        bbox_inches="tight"
+    )
+
     plt.close()
+
     print(f"  Saved plot: {out_file}")
 
 
